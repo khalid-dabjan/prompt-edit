@@ -6,7 +6,10 @@ A small image-generation app built on the [Pixelforge](https://pixelforge.prompt
 - charges exactly what Pixelforge billed plus a 25% markup, and nothing for failures
 - keeps the history accurate even when webhooks arrive twice, late or out of order
 
-**Live:** https://prompt-edit-6jbs81fn.on-forge.com/. Sign up (no email verification), buy credits on the Credits page, then generate.
+**Live:** https://prompt-edit-6jbs81fn.on-forge.com/
+
+- **Test accounts:** login details for a test user and a test admin are in the application form. The admin account also has the Admin report (`/admin/report`).
+- **Your own account:** you can also sign up (no email verification), buy credits on the Credits page, then generate.
 
 **Stack:** Laravel 13 · Inertia v3 · Vue 3 · Tailwind 4 · MySQL · Pest
 
