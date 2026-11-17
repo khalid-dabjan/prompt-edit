@@ -37,6 +37,7 @@ return new class extends Migration
             $table->unsignedInteger('reasoning_tokens')->nullable();
             $table->unsignedBigInteger('provider_cost_nanodollars')->nullable();
             $table->unsignedBigInteger('charge_nanodollars')->nullable();
+            $table->boolean('charge_waived')->default(false);
 
             $table->string('error_code')->nullable();
             $table->text('error_message')->nullable();

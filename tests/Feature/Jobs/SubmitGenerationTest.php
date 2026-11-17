@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\ApplyGenerationSnapshot;
 use App\Enums\GenerationStatus;
 use App\Enums\ImageQuality;
 use App\Enums\ImageSize;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Http;
 function runSubmitGeneration(Generation $generation): SubmitGeneration
 {
     $job = (new SubmitGeneration($generation))->withFakeQueueInteractions();
-    $job->handle(app(PixelforgeClient::class));
+    $job->handle(app(PixelforgeClient::class), app(ApplyGenerationSnapshot::class));
 
     return $job;
 }
@@ -148,4 +149,17 @@ it('leaves a generation Pixelforge already accepted untouched when retries run o
     expect($generation->fresh())
         ->status->toBe(GenerationStatus::Queued)
         ->error_code->toBeNull();
+});
+
+it('charges a generation whose idempotent replay shows it already succeeded', function () {
+    Http::preventStrayRequests();
+    Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeFixture('generation-succeeded'), 202, ['Idempotent-Replayed' => 'true'])]);
+    $generation = Generation::factory()->pending()->create();
+
+    runSubmitGeneration($generation);
+
+    expect($generation->fresh())
+        ->status->toBe(GenerationStatus::Succeeded)
+        ->provider_cost_nanodollars->toBe(305_510_000)
+        ->charge_nanodollars->toBe(381_887_500);
 });

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\ApplyGenerationSnapshot;
 use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Services\Pixelforge\ErrorCode;
@@ -55,7 +56,7 @@ class SubmitGeneration implements ShouldQueue
         return now()->addHour();
     }
 
-    public function handle(PixelforgeClient $pixelforge): void
+    public function handle(PixelforgeClient $pixelforge, ApplyGenerationSnapshot $applySnapshot): void
     {
         if ($this->generation->status !== GenerationStatus::Pending) {
             return;
@@ -90,23 +91,23 @@ class SubmitGeneration implements ShouldQueue
             return;
         }
 
-        Generation::query()
-            ->whereKey($this->generation->id)
-            ->where('status', GenerationStatus::Pending)
-            ->update([
-                'pixelforge_id' => $accepted->id,
-                'status' => GenerationStatus::Queued,
-                'rates' => json_encode($accepted->rates->toArray()),
-            ]);
+        // An idempotent replay returns the generation's current state, which may
+        // already be processing or finished, so it goes through the same path
+        // as webhooks and polling.
+        $applySnapshot->handle($this->generation, $accepted);
     }
 
     /**
-     * Retries ran out (or the job crashed): give up on a generation that
-     * never got accepted. Nothing was billed, so nothing is charged.
+     * Retries ran out (or the job crashed). A lost response means Pixelforge
+     * may have accepted it anyway; if it reports on it later, the user still
+     * isn't charged (see ApplyGenerationSnapshot).
      */
     public function failed(?Throwable $exception): void
     {
-        $this->markFailed(self::SUBMISSION_FAILED, 'We could not start this generation with Pixelforge. You were not charged.');
+        $this->markFailed(
+            self::SUBMISSION_FAILED,
+            'We could not confirm this generation started with Pixelforge. You will not be charged for it.',
+        );
     }
 
     /**

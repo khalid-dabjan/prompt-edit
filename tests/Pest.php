@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Pixelforge\Data\Generation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -57,4 +58,14 @@ function something()
 function pixelforgeFixture(string $name): array
 {
     return json_decode(file_get_contents(__DIR__."/Fixtures/Pixelforge/{$name}.json"), true);
+}
+
+/**
+ * A Pixelforge generation snapshot built from a fixture, with fields overridden.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function pixelforgeSnapshot(string $fixture, array $overrides = []): Generation
+{
+    return Generation::fromArray(array_replace(pixelforgeFixture($fixture), $overrides));
 }

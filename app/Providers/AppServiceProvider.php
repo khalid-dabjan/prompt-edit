@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Services\Pixelforge\PixelforgeClient;
+use App\Services\Pixelforge\WebhookSignature;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +24,11 @@ class AppServiceProvider extends ServiceProvider
             connectTimeout: config()->integer('services.pixelforge.connect_timeout'),
             timeout: config()->integer('services.pixelforge.timeout'),
         ));
+
+        $this->app->singleton(WebhookSignature::class, fn (): WebhookSignature => new WebhookSignature(
+            secret: (string) config('services.pixelforge.webhook_secret'),
+            toleranceSeconds: config()->integer('services.pixelforge.webhook_tolerance'),
+        ));
     }
 
     /**
@@ -30,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // `composer run dev` also runs the scheduler, which polls unfinished generations.
+        DevCommands::artisan('schedule:work', 'scheduler');
     }
 
     /**

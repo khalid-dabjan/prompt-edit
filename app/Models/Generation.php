@@ -34,12 +34,14 @@ use Illuminate\Support\Carbon;
  * @property int|null $reasoning_tokens
  * @property int|null $provider_cost_nanodollars What Pixelforge charged us. Set once the generation is final.
  * @property int|null $charge_nanodollars What we charged the user. Set once the generation is final.
+ * @property bool $charge_waived True when Pixelforge billed us but we told the user they would not be charged (see ApplyGenerationSnapshot).
  * @property string|null $error_code
  * @property string|null $error_message
  * @property string|null $image_url
  * @property Carbon|null $image_url_expires_at
  * @property Carbon|null $started_at
  * @property Carbon|null $completed_at
+ * @property Carbon|null $polled_at When we last fetched it from Pixelforge because no webhook had updated it.
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -62,6 +64,7 @@ use Illuminate\Support\Carbon;
     'reasoning_tokens',
     'provider_cost_nanodollars',
     'charge_nanodollars',
+    'charge_waived',
     'error_code',
     'error_message',
     'image_url',
@@ -104,9 +107,11 @@ class Generation extends Model
             'reasoning_tokens' => 'integer',
             'provider_cost_nanodollars' => 'integer',
             'charge_nanodollars' => 'integer',
+            'charge_waived' => 'boolean',
             'image_url_expires_at' => 'datetime',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'polled_at' => 'datetime',
         ];
     }
 }
