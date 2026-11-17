@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => to_route('generations.create'))->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('generations', [GenerationController::class, 'index'])->name('generations.index');
 
     Route::get('generations/create', [GenerationController::class, 'create'])->name('generations.create');
