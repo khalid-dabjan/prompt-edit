@@ -34,7 +34,7 @@ it('records a pending generation with the quoted price range and queues it for s
     Queue::fake([SubmitGeneration::class]);
     Http::preventStrayRequests();
     Http::fake(['pixelforge.test/v1/pricing' => Http::response(pixelforgeFixture('pricing'))]);
-    $user = User::factory()->create();
+    $user = User::factory()->withBalance(100_000_000_000)->create();
 
     $this->actingAs($user)
         ->from(route('generations.create'))
@@ -65,7 +65,7 @@ it('quotes and records the markup configured when the user submits', function ()
     Http::preventStrayRequests();
     Http::fake(['pixelforge.test/v1/pricing' => Http::response(pixelforgeFixture('pricing'))]);
     config(['billing.markup_percent' => 50]);
-    $user = User::factory()->create();
+    $user = User::factory()->withBalance(100_000_000_000)->create();
 
     $this->actingAs($user)->post(route('generations.store'), generationInput());
 
@@ -77,7 +77,7 @@ it('quotes and records the markup configured when the user submits', function ()
 
 it('rejects input Pixelforge would refuse', function (array $input, string $invalidField) {
     Queue::fake([SubmitGeneration::class]);
-    $user = User::factory()->create();
+    $user = User::factory()->withBalance(100_000_000_000)->create();
 
     $this->actingAs($user)
         ->post(route('generations.store'), generationInput($input))
@@ -100,7 +100,7 @@ it('tells the user generation is unavailable when the price cannot be quoted', f
     Exceptions::fake();
     Http::preventStrayRequests();
     Http::fake(['pixelforge.test/v1/pricing' => Http::response('Service Unavailable', 503)]);
-    $user = User::factory()->create();
+    $user = User::factory()->withBalance(100_000_000_000)->create();
 
     $this->actingAs($user)
         ->post(route('generations.store'), generationInput())
@@ -114,7 +114,7 @@ it('tells the user generation is unavailable when the price cannot be quoted', f
 it('asks a user who submits more than 10 generations a minute to wait', function () {
     Queue::fake([SubmitGeneration::class]);
     Http::fake(['pixelforge.test/v1/pricing' => Http::response(pixelforgeFixture('pricing'))]);
-    $user = User::factory()->create();
+    $user = User::factory()->withBalance(100_000_000_000)->create();
 
     for ($attempt = 1; $attempt <= 10; $attempt++) {
         $this->actingAs($user)->post(route('generations.store'), generationInput())->assertSessionHasNoErrors();

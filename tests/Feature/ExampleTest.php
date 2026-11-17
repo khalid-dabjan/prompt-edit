@@ -1,7 +1,7 @@
 <?php
 
-test('returns a successful response', function () {
+test('the home page opens the generate page', function () {
     $response = $this->get(route('home'));
 
-    $response->assertOk();
+    $response->assertRedirect(route('generations.create'));
 });

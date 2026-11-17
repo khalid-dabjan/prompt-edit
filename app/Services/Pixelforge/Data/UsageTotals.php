@@ -2,6 +2,8 @@
 
 namespace App\Services\Pixelforge\Data;
 
+use UnexpectedValueException;
+
 /**
  * What Pixelforge billed over a period (one UTC day, or a whole report).
  */
@@ -18,6 +20,18 @@ final readonly class UsageTotals
         public int $reasoningTokens,
         public string $costUsd,
     ) {}
+
+    /**
+     * The cost as integer nanodollars, parsed exactly from the 9-decimal string ("0.169080000" → 169,080,000).
+     */
+    public function costNanodollars(): int
+    {
+        if (preg_match('/^(\d+)\.(\d{9})$/', $this->costUsd, $matches) !== 1) {
+            throw new UnexpectedValueException("Unexpected Pixelforge cost [{$this->costUsd}].");
+        }
+
+        return (int) $matches[1] * 1_000_000_000 + (int) $matches[2];
+    }
 
     /**
      * @param  array{generations: int, input_text_tokens: int, input_image_tokens: int, output_tokens: int, reasoning_tokens: int, cost_usd: string}  $totals

@@ -33,7 +33,30 @@ class UserFactory extends Factory
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
+            'balance_nanodollars' => 0,
+            'is_admin' => false,
         ];
+    }
+
+    /**
+     * An operator who may see the admin report.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
+        ]);
+    }
+
+    /**
+     * Give the user credits to spend, in nanodollars (1 USD = 1,000,000,000).
+     * Sets the cached balance directly, without ledger rows.
+     */
+    public function withBalance(int $nanodollars): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'balance_nanodollars' => $nanodollars,
+        ]);
     }
 
     /**

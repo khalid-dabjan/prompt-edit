@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ImagePlus, Info, Sparkles, X } from '@lucide/vue';
 import { computed } from 'vue';
 import AlertError from '@/components/AlertError.vue';
@@ -16,8 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { usePriceEstimate } from '@/composables/usePriceEstimate';
-import { formatUsdRange } from '@/lib/money';
+import { formatUsd, formatUsdRange } from '@/lib/money';
 import { cn } from '@/lib/utils';
+import { index as credits } from '@/routes/credits';
 import { create, store } from '@/routes/generations';
 import type { GenerationPrefill, ImageQuality, ImageSize } from '@/types';
 
@@ -91,7 +92,23 @@ const referenceImageErrors = computed(() =>
     ),
 );
 
-const canSubmit = computed(() => form.prompt.trim() !== '' && !form.processing);
+const page = usePage();
+
+const balance = computed(() => page.props.balanceNanodollars ?? 0);
+
+/**
+ * The highest possible price is reserved on submit, so the balance must cover it.
+ * The server enforces this too; this just says so before the user tries.
+ */
+const cannotAfford = computed(
+    () =>
+        estimate.value !== null &&
+        balance.value < estimate.value.max_charge_nanodollars,
+);
+
+const canSubmit = computed(
+    () => form.prompt.trim() !== '' && !form.processing && !cannotAfford.value,
+);
 
 function addReferenceImage(): void {
     if (form.reference_images.length < MAX_REFERENCE_IMAGES) {
@@ -386,6 +403,32 @@ function submit(): void {
                             <span>If the generation fails, it's free.</span>
                         </li>
                     </ul>
+
+                    <div
+                        class="flex items-center justify-between border-t pt-4 text-sm"
+                    >
+                        <span class="text-muted-foreground">Your balance</span>
+                        <Link
+                            :href="credits()"
+                            class="font-medium tabular-nums hover:underline"
+                        >
+                            {{ formatUsd(balance, 'down') }}
+                        </Link>
+                    </div>
+
+                    <p
+                        v-if="cannotAfford && estimate"
+                        class="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300"
+                        role="alert"
+                    >
+                        This can cost up to
+                        {{ formatUsd(estimate.max_charge_nanodollars, 'up') }},
+                        more than your balance.
+                        <Link :href="credits()" class="font-medium underline">
+                            Buy credits
+                        </Link>
+                        to continue.
+                    </p>
 
                     <Button
                         type="submit"

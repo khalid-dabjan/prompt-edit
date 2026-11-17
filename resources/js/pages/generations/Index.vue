@@ -23,7 +23,7 @@ const props = defineProps<{
 // generation is unfinished, refresh this page's data every few seconds.
 const { start, stop } = usePoll(
     2500,
-    { only: ['generations', 'hasUnfinished'] },
+    { only: ['generations', 'hasUnfinished', 'balanceNanodollars'] },
     { autoStart: false },
 );
 

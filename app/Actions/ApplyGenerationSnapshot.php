@@ -6,6 +6,7 @@ use App\Enums\GenerationStatus;
 use App\Jobs\StoreGenerationImage;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
+use App\Services\Billing\CreditLedger;
 use App\Services\Billing\PriceCalculator;
 use App\Services\Pixelforge\Data\Generation as PixelforgeGeneration;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,10 @@ use UnexpectedValueException;
  */
 class ApplyGenerationSnapshot
 {
-    public function __construct(private readonly PriceCalculator $priceCalculator) {}
+    public function __construct(
+        private readonly PriceCalculator $priceCalculator,
+        private readonly CreditLedger $creditLedger,
+    ) {}
 
     /**
      * Find our generation for a Pixelforge snapshot: by its Pixelforge id, or,
@@ -98,6 +102,9 @@ class ApplyGenerationSnapshot
             };
 
             $generation->save();
+
+            // Same transaction as the status change: the credits move exactly when it becomes final.
+            $this->creditLedger->settle($generation);
 
             if ($generation->status === GenerationStatus::Succeeded) {
                 // Pixelforge's image URL expires after 24 hours; keep our own copy.

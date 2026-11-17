@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Actions\ApplyGenerationSnapshot;
 use App\Enums\GenerationStatus;
 use App\Models\Generation;
+use App\Services\Billing\CreditLedger;
 use App\Services\Pixelforge\ErrorCode;
 use App\Services\Pixelforge\Exceptions\PixelforgeApiException;
 use App\Services\Pixelforge\Exceptions\PixelforgeConnectionException;
@@ -12,6 +13,7 @@ use App\Services\Pixelforge\PixelforgeClient;
 use DateTimeInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
@@ -120,20 +122,27 @@ class SubmitGeneration implements ShouldQueue
 
     /**
      * Only a generation that is still pending can fail here, so a webhook
-     * that already moved it forward is never overwritten.
+     * that already moved it forward is never overwritten. Its credit hold is
+     * given back in the same transaction.
      */
     private function markFailed(string $errorCode, string $errorMessage): void
     {
-        Generation::query()
-            ->whereKey($this->generation->id)
-            ->where('status', GenerationStatus::Pending)
-            ->update([
-                'status' => GenerationStatus::Failed,
-                'error_code' => $errorCode,
-                'error_message' => $errorMessage,
-                'provider_cost_nanodollars' => 0,
-                'charge_nanodollars' => 0,
-                'completed_at' => now(),
-            ]);
+        DB::transaction(function () use ($errorCode, $errorMessage): void {
+            $failed = Generation::query()
+                ->whereKey($this->generation->id)
+                ->where('status', GenerationStatus::Pending)
+                ->update([
+                    'status' => GenerationStatus::Failed,
+                    'error_code' => $errorCode,
+                    'error_message' => $errorMessage,
+                    'provider_cost_nanodollars' => 0,
+                    'charge_nanodollars' => 0,
+                    'completed_at' => now(),
+                ]);
+
+            if ($failed === 1) {
+                app(CreditLedger::class)->settle($this->generation->fresh() ?? $this->generation);
+            }
+        });
     }
 }

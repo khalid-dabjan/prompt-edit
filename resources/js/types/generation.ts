@@ -65,3 +65,47 @@ export type Paginated<T> = {
         total: number;
     };
 };
+
+export type CreditTransactionType =
+    | 'purchase'
+    | 'hold'
+    | 'hold_release'
+    | 'charge';
+
+/**
+ * One change to the user's credits (signed nanodollars).
+ */
+export type CreditTransaction = {
+    id: number;
+    type: CreditTransactionType;
+    amount_nanodollars: number;
+    generation: { id: number; prompt: string } | null;
+    created_at: string;
+};
+
+type ReportTotals = {
+    generations: number;
+    credit_spend_nanodollars: number;
+    provider_cost_nanodollars: number;
+    profit_nanodollars: number;
+};
+
+/**
+ * Pixelforge's own figures for the same period; null when it couldn't be reached.
+ */
+type ReportReconciliation = {
+    pixelforge_generations: number | null;
+    pixelforge_cost_nanodollars: number | null;
+    difference_nanodollars: number | null;
+};
+
+export type AdminReport = {
+    days: ({ date: string } & ReportTotals & ReportReconciliation)[];
+    users: ({
+        user_id: number | null;
+        name: string | null;
+        email: string | null;
+    } & ReportTotals)[];
+    totals: ReportTotals & ReportReconciliation;
+    pixelforge_available: boolean;
+};

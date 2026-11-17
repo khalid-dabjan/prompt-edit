@@ -6,6 +6,7 @@ use App\Actions\CreateGeneration;
 use App\Http\Requests\StoreGenerationRequest;
 use App\Http\Resources\GenerationResource;
 use App\Models\Generation;
+use App\Services\Billing\InsufficientCreditsException;
 use App\Services\Pixelforge\Exceptions\PixelforgeException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,6 +65,10 @@ class GenerationController extends Controller
                 quality: $request->quality(),
                 referenceImages: $request->referenceImages(),
             );
+        } catch (InsufficientCreditsException) {
+            return back()->withErrors([
+                'generation' => __("You don't have enough credits for this generation. Buy credits to continue."),
+            ]);
         } catch (PixelforgeException $exception) {
             report($exception);
 

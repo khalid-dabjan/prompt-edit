@@ -1,14 +1,8 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import {
-    BookOpen,
-    FolderGit2,
-    Images,
-    LayoutGrid,
-    Sparkles,
-} from '@lucide/vue';
-import AppLogo from '@/components/AppLogo.vue';
-import NavFooter from '@/components/NavFooter.vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { ChartColumn, Images, Sparkles } from '@lucide/vue';
+import logo from '@/../images/prompt-edit-logo.png';
+import CreditBalance from '@/components/CreditBalance.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -20,19 +14,16 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { report as adminReport } from '@/routes/admin';
 import {
     create as createGeneration,
     index as generationsIndex,
 } from '@/routes/generations';
 import type { NavItem } from '@/types';
 
+const page = usePage();
+
 const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
     {
         title: 'Generate',
         href: createGeneration(),
@@ -43,19 +34,9 @@ const mainNavItems: NavItem[] = [
         href: generationsIndex(),
         icon: Images,
     },
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
+    ...(page.props.auth.user.is_admin
+        ? [{ title: 'Admin report', href: adminReport(), icon: ChartColumn }]
+        : []),
 ];
 </script>
 
@@ -65,8 +46,17 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
-                            <AppLogo />
+                        <Link :href="createGeneration()">
+                            <!-- Collapsed to icon width, only the lightning mark at the logo's left edge shows. -->
+                            <div
+                                class="h-7 overflow-hidden group-data-[collapsible=icon]:size-8"
+                            >
+                                <img
+                                    :src="logo"
+                                    alt="PromptEdit"
+                                    class="h-full w-auto max-w-none dark:invert"
+                                />
+                            </div>
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -78,7 +68,7 @@ const footerNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+            <CreditBalance />
             <NavUser />
         </SidebarFooter>
     </Sidebar>

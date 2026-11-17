@@ -14,4 +14,16 @@ return [
 
     'markup_percent' => 25,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Credit packs
+    |--------------------------------------------------------------------------
+    |
+    | The amounts (in US dollars) the "Buy credits" button offers. Purchases
+    | are simulated: no payment is taken.
+    |
+    */
+
+    'credit_packs_usd' => [5, 10, 25],
+
 ];
