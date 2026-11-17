@@ -29,6 +29,7 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="INERTIA_SSR_ENABLED" value="false"/>
         <env name="PIXELFORGE_API_KEY" value="pf_test_key"/>
         <env name="PIXELFORGE_BASE_URL" value="https://pixelforge.test/v1"/>
         <env name="PIXELFORGE_WEBHOOK_SECRET" value="whsec_test_secret"/>

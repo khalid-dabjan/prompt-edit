@@ -4,6 +4,7 @@ use App\Actions\ApplyGenerationSnapshot;
 use App\Enums\GenerationStatus;
 use App\Enums\ImageQuality;
 use App\Enums\ImageSize;
+use App\Jobs\StoreGenerationImage;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
 use App\Services\Pixelforge\Exceptions\PixelforgeApiException;
@@ -11,6 +12,7 @@ use App\Services\Pixelforge\PixelforgeClient;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 function runSubmitGeneration(Generation $generation): SubmitGeneration
 {
@@ -27,6 +29,10 @@ function pixelforgeError(string $type, string $code): array
 {
     return ['error' => ['type' => $type, 'code' => $code, 'message' => 'Pixelforge says no.']];
 }
+
+beforeEach(function () {
+    Queue::fake([StoreGenerationImage::class]);
+});
 
 it('submits the generation with its idempotency key and records that Pixelforge accepted it', function () {
     Http::preventStrayRequests();

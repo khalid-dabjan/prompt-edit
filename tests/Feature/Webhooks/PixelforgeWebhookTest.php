@@ -1,9 +1,11 @@
 <?php
 
 use App\Enums\GenerationStatus;
+use App\Jobs\StoreGenerationImage;
 use App\Models\Generation;
 use App\Models\WebhookEvent;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 
@@ -41,6 +43,7 @@ function sendPixelforgeWebhook(array|string $event, ?int $timestamp = null, stri
 
 beforeEach(function () {
     $this->freezeTime();
+    Queue::fake([StoreGenerationImage::class]);
 });
 
 it('charges a generation when Pixelforge reports it succeeded', function () {

@@ -2,8 +2,10 @@
 
 use App\Actions\ApplyGenerationSnapshot;
 use App\Enums\GenerationStatus;
+use App\Jobs\StoreGenerationImage;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
+use Illuminate\Support\Facades\Queue;
 
 const PIXELFORGE_ID = 'gen_01JC2Z8Q4N6V0M3H7X5T9R2B1K';
 
@@ -11,6 +13,10 @@ function applySnapshot(Generation $generation, App\Services\Pixelforge\Data\Gene
 {
     return app(ApplyGenerationSnapshot::class)->handle($generation, $snapshot)->fresh();
 }
+
+beforeEach(function () {
+    Queue::fake([StoreGenerationImage::class]);
+});
 
 describe('moving forward', function () {
     it('records when processing started', function () {
@@ -93,6 +99,26 @@ describe('moving forward', function () {
             ->pixelforge_id->toBe(PIXELFORGE_ID)
             ->status->toBe(GenerationStatus::Processing)
             ->rates->toBe(pixelforgeFixture('generation-queued')['rates']);
+    });
+});
+
+describe('keeping a copy of the image', function () {
+    it('queues the image download once when a generation succeeds', function () {
+        $generation = Generation::factory()->processing()->create(['pixelforge_id' => PIXELFORGE_ID]);
+
+        applySnapshot($generation, pixelforgeSnapshot('generation-succeeded'));
+        applySnapshot($generation, pixelforgeSnapshot('generation-succeeded'));
+
+        Queue::assertPushedTimes(StoreGenerationImage::class, 1);
+        Queue::assertPushed(StoreGenerationImage::class, fn (StoreGenerationImage $job): bool => $job->generation->is($generation));
+    });
+
+    it('does not queue a download when a generation fails', function () {
+        $generation = Generation::factory()->processing()->create(['pixelforge_id' => PIXELFORGE_ID]);
+
+        applySnapshot($generation, pixelforgeSnapshot('generation-failed', ['id' => PIXELFORGE_ID]));
+
+        Queue::assertNotPushed(StoreGenerationImage::class);
     });
 });
 

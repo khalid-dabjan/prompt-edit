@@ -5,8 +5,12 @@ namespace App\Models;
 use App\Enums\GenerationStatus;
 use App\Enums\ImageQuality;
 use App\Enums\ImageSize;
+use App\Jobs\SubmitGeneration;
+use App\Services\Pixelforge\ErrorCode;
 use Database\Factories\GenerationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -39,6 +43,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $error_message
  * @property string|null $image_url
  * @property Carbon|null $image_url_expires_at
+ * @property string|null $image_path Our stored copy of the image, on the `services.pixelforge.image_disk` disk.
  * @property Carbon|null $started_at
  * @property Carbon|null $completed_at
  * @property Carbon|null $polled_at When we last fetched it from Pixelforge because no webhook had updated it.
@@ -69,6 +74,7 @@ use Illuminate\Support\Carbon;
     'error_message',
     'image_url',
     'image_url_expires_at',
+    'image_path',
     'started_at',
     'completed_at',
 ])]
@@ -83,6 +89,50 @@ class Generation extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Generations that haven't reached a final status yet.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function unfinished(Builder $query): void
+    {
+        $query->whereIn('status', [GenerationStatus::Pending, GenerationStatus::Queued, GenerationStatus::Processing]);
+    }
+
+    /**
+     * Whether an image can be shown: our stored copy, or Pixelforge's URL until it expires.
+     */
+    public function hasViewableImage(): bool
+    {
+        if ($this->image_path !== null) {
+            return true;
+        }
+
+        return $this->image_url !== null && $this->image_url_expires_at?->isFuture() === true;
+    }
+
+    /**
+     * What to tell the user about a failure, in plain words. Every failed
+     * generation is free, which the UI says separately.
+     */
+    public function failureMessage(): ?string
+    {
+        if ($this->status !== GenerationStatus::Failed) {
+            return null;
+        }
+
+        return match (ErrorCode::tryFrom((string) $this->error_code)) {
+            ErrorCode::ContentPolicyViolation => __('This prompt was rejected by the content policy. Try rewording it.'),
+            ErrorCode::DailyLimitExceeded => __("Today's generation limit has been reached. Please try again after midnight UTC."),
+            ErrorCode::GenerationFailed => __("The model couldn't create an image for this prompt. Try rephrasing it."),
+            ErrorCode::InternalError => __('Something went wrong while generating. Please try again.'),
+            default => $this->error_code === SubmitGeneration::SUBMISSION_FAILED
+                ? __("We couldn't start this generation. Please try again.")
+                : __('Something went wrong on our side. Please try again.'),
+        };
     }
 
     /**

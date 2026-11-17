@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Enums\GenerationStatus;
+use App\Jobs\StoreGenerationImage;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
 use App\Services\Billing\PriceCalculator;
@@ -97,6 +98,12 @@ class ApplyGenerationSnapshot
             };
 
             $generation->save();
+
+            if ($generation->status === GenerationStatus::Succeeded) {
+                // Pixelforge's image URL expires after 24 hours; keep our own copy.
+                // Dispatched after commit, so the job never sees the pre-success row.
+                StoreGenerationImage::dispatch($generation)->afterCommit();
+            }
 
             return $generation;
         });

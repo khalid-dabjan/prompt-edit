@@ -6,7 +6,7 @@
     "size": "1536x1024",
     "quality": "high",
     "reference_images": ["https://example.com/reference.png"],
-    "metadata": {"order_id": "1042"},
+    "metadata": { "order_id": "1042" },
     "image_url": "https://pixelforge.promptedit.dev/images/gen_01JC2Z8Q4N6V0M3H7X5T9R2B1K.png?expires=1794924209&signature=abc123",
     "image_url_expires_at": "2026-11-05T14:03:29Z",
     "usage": {

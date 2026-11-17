@@ -1,11 +1,13 @@
 <?php
 
 use App\Enums\GenerationStatus;
+use App\Jobs\StoreGenerationImage;
 use App\Models\Generation;
 use App\Services\Pixelforge\Exceptions\PixelforgeApiException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 /**
  * An unfinished generation with no update for two minutes.
@@ -23,6 +25,7 @@ function quietGeneration(string $pixelforgeId, array $attributes = []): Generati
 
 beforeEach(function () {
     $this->freezeSecond();
+    Queue::fake([StoreGenerationImage::class]);
     Http::preventStrayRequests();
 });
 

@@ -5,9 +5,12 @@ namespace App\Providers;
 use App\Services\Pixelforge\PixelforgeClient;
 use App\Services\Pixelforge\WebhookSignature;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\DevCommands;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -37,9 +40,24 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureRateLimiting();
 
         // `composer run dev` also runs the scheduler, which polls unfinished generations.
         DevCommands::artisan('schedule:work', 'scheduler');
+    }
+
+    /**
+     * Pixelforge's quota (60 requests/min, 500 generations/day) is shared by every
+     * user, so one user can't submit more than 10 generations a minute. Going over
+     * sends them back to the form with a message instead of a bare 429 page.
+     */
+    protected function configureRateLimiting(): void
+    {
+        RateLimiter::for('generations', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by((string) $request->user()?->id)
+            ->response(fn () => back()->withErrors([
+                'generation' => __('You are generating very quickly. Please wait a minute and try again.'),
+            ])));
     }
 
     /**

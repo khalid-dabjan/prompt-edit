@@ -37,9 +37,9 @@ it('records a pending generation with the quoted price range and queues it for s
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->from(route('dashboard'))
+        ->from(route('generations.create'))
         ->post(route('generations.store'), generationInput())
-        ->assertRedirect(route('dashboard'))
+        ->assertRedirect(route('generations.index'))
         ->assertSessionHasNoErrors();
 
     $generation = $user->generations()->sole();
@@ -109,4 +109,22 @@ it('tells the user generation is unavailable when the price cannot be quoted', f
     expect(Generation::query()->count())->toBe(0);
     Queue::assertNotPushed(SubmitGeneration::class);
     Exceptions::assertReported(PixelforgeApiException::class);
+});
+
+it('asks a user who submits more than 10 generations a minute to wait', function () {
+    Queue::fake([SubmitGeneration::class]);
+    Http::fake(['pixelforge.test/v1/pricing' => Http::response(pixelforgeFixture('pricing'))]);
+    $user = User::factory()->create();
+
+    for ($attempt = 1; $attempt <= 10; $attempt++) {
+        $this->actingAs($user)->post(route('generations.store'), generationInput())->assertSessionHasNoErrors();
+    }
+
+    $this->actingAs($user)
+        ->from(route('generations.create'))
+        ->post(route('generations.store'), generationInput())
+        ->assertRedirect(route('generations.create'))
+        ->assertSessionHasErrors(['generation' => 'You are generating very quickly. Please wait a minute and try again.']);
+
+    expect($user->generations()->count())->toBe(10);
 });

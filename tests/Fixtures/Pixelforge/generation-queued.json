@@ -6,7 +6,7 @@
     "size": "1536x1024",
     "quality": "high",
     "reference_images": ["https://example.com/reference.png"],
-    "metadata": {"order_id": "1042"},
+    "metadata": { "order_id": "1042" },
     "image_url": null,
     "image_url_expires_at": null,
     "usage": null,
