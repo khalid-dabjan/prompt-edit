@@ -48,3 +48,13 @@ function something()
 {
     // ..
 }
+
+/**
+ * Decode a recorded Pixelforge API response from tests/Fixtures/Pixelforge.
+ *
+ * @return array<string, mixed>
+ */
+function pixelforgeFixture(string $name): array
+{
+    return json_decode(file_get_contents(__DIR__."/Fixtures/Pixelforge/{$name}.json"), true);
+}

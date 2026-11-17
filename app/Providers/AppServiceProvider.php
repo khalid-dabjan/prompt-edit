@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Pixelforge\PixelforgeClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(PixelforgeClient::class, fn (): PixelforgeClient => new PixelforgeClient(
+            apiKey: config()->string('services.pixelforge.key'),
+            baseUrl: config()->string('services.pixelforge.base_url'),
+            connectTimeout: config()->integer('services.pixelforge.connect_timeout'),
+            timeout: config()->integer('services.pixelforge.timeout'),
+        ));
     }
 
     /**
